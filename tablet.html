@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>JUEZ PADEL CONTROL - TABLET V1.0</title>
+    <title>JUEZ PADEL CONTROL - TABLET V1.1</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
@@ -21,6 +21,8 @@
         }
         
         .version-tag { position: fixed; bottom: 5px; left: 5px; font-size: 10px; color: #555; }
+        
+        /* LOGO DE MARCA */
         .brand-logo { position: fixed; top: 10px; right: 20px; height: 35px; width: auto; z-index: 9999; }
 
         /* HEADER: Tiempos y Configuración */
@@ -44,8 +46,12 @@
         .config-regla { 
             background: #222; color: #fff; border: 1px solid #444; 
             padding: 12px 5px; border-radius: 8px; font-size: 12px; font-weight: bold; 
+            cursor: pointer;
         }
-        .config-regla.activo { background: #ccff00; color: #000; }
+        .config-regla.activo { background: #ccff00 !important; color: #000 !important; border-color: #fff; }
+        
+        /* COLOR ESPECIAL PARA RELOJ PELOTEO ACTIVO */
+        .peloteo-activo { background: #ccff00 !important; color: #000 !important; border-color: #fff !important; }
 
         .zona-tiempos { 
             display: flex; justify-content: space-around; align-items: center; 
@@ -54,7 +60,7 @@
         .timer-val { font-family: monospace; font-size: 28px; color: #ccff00; font-weight: bold; }
         .timer-label { font-size: 10px; color: #aaa; text-transform: uppercase; }
 
-        /* CONTENIDO PRINCIPAL: Dos columnas para los equipos */
+        /* CONTENIDO PRINCIPAL */
         .tablero-grid {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -70,28 +76,29 @@
         .fila-jugador { 
             display: flex; align-items: center; justify-content: space-between; 
             background: #1a1a1a; margin-bottom: 10px; padding: 15px; border-radius: 12px; 
-            border: 2px solid transparent; transition: 0.3s;
+            border: 2px solid transparent;
         }
         .fila-jugador.sirviendo { border-color: #ccff00; background: #2a2a00; box-shadow: 0 0 15px rgba(204, 255, 0, 0.2); }
         
-        .nombre-j { font-size: 18px; font-weight: bold; flex-grow: 1; }
+        .nombre-j { font-size: 18px; font-weight: bold; flex-grow: 1; text-align: left; }
 
         .puntos-display { 
             font-size: 120px; font-weight: 900; color: #c6a052; 
-            margin: 20px 0; text-shadow: 0 0 20px rgba(198, 160, 82, 0.3);
+            margin: 10px 0; text-shadow: 0 0 20px rgba(198, 160, 82, 0.3);
+            text-align: center;
         }
 
         .btn-punto { 
             width: 100%; padding: 30px; background: #c6a052; border: none; 
             border-radius: 15px; font-size: 24px; font-weight: 900; color: #000; 
-            box-shadow: 0 6px 0 #8e733b; active { transform: translateY(4px); box-shadow: 0 2px 0 #8e733b; }
+            box-shadow: 0 6px 0 #8e733b; cursor: pointer;
         }
+        .btn-punto:active { transform: translateY(4px); box-shadow: 0 2px 0 #8e733b; }
 
         .btn-saque {
-            padding: 10px 20px; background: #333; color: #fff; border: none; border-radius: 8px; font-weight: bold;
+            padding: 10px 15px; background: #333; color: #fff; border: none; border-radius: 8px; font-weight: bold; cursor: pointer;
         }
 
-        /* Aviso de cambio */
         .aviso-cambio { 
             background: #ffcc00; color: #000; padding: 40px; font-size: 35px; font-weight: 900; 
             border-radius: 20px; position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
@@ -100,13 +107,13 @@
     </style>
 </head>
 <body onload="cargarLocal()">
-    <div class="version-tag">TABLET ADAPTATION V1.0</div>
-    <img src="TU_LOGO_AQUÍ.png" alt="" class="brand-logo">
+    <div class="version-tag">TABLET ADAPTATION V1.1</div>
+    
+    <img src="TU_URL_DE_LOGO.png" alt="Logo" class="brand-logo">
     
     <div id="cambio-lado-ctrl" class="aviso-cambio" onclick="aceptarCambio()">
         <span id="msg-descanso">CAMBIO DE LADO</span> <br>
         <div id="reloj-descanso-box" style="font-size: 60px; margin-top: 20px;"><span id="reloj-descanso">90</span>s</div>
-        <div style="font-size: 18px; margin-top: 20px;">TOCA PARA CONTINUAR</div>
     </div>
 
     <div class="header-tablet">
@@ -116,7 +123,7 @@
             <button class="config-regla" onclick="togglePuntoOro()" id="btn-oro">ORO: NO</button>
             <button class="config-regla" style="background:#444;" onclick="deshacer()">↩ CORREGIR</button>
             <button class="config-regla" style="background:#500;" onclick="resetTotal()">⚠️ RESET</button>
-            <button class="config-regla" style="background:#0055ff;" onclick="toggleVisPeloteo()">👁️ RELOJ PELOTEO</button>
+            <button class="config-regla" id="btn-vis-peloteo" onclick="toggleVisPeloteo()">👁️ RELOJ PELOTEO</button>
         </div>
 
         <div class="zona-tiempos">
@@ -126,7 +133,7 @@
                 <button class="btn-saque" onclick="toggleTimer('peloteo')">PLAY</button>
             </div>
             <div class="timer-box">
-                <span class="timer-label">Tiempo Partido</span>
+                <span class="timer-label">Partido</span>
                 <div id="disp-partido" class="timer-val">00:00:00</div>
                 <button class="btn-saque" onclick="toggleTimer('partido')">PAUSE</button>
             </div>
@@ -166,11 +173,10 @@
     </div>
 
 <script>
-    // --- USA TU CONFIGURACIÓN DE FIREBASE AQUÍ ---
+    // CONFIGURACIÓN FIREBASE
     const firebaseConfig = { apiKey: "AIzaSyCZXCceFne0HnGewV6pdpJ50MKetv6gvL0", databaseURL: "https://padel-cliente-2-default-rtdb.firebaseio.com", projectId: "padel-cliente-2" };
     firebase.initializeApp(firebaseConfig); const db = firebase.database();
 
-    // Lógica del juego (Misma que tu archivo control2.html para mantener compatibilidad)
     let pts = [0,0], historialSets = [[0,0,0], [0,0,0]], setActualIdx = 0, modo = "NORMAL", limiteTB = 6, puntoOroActivo = false, modoSTB = 0, finalizado = false;
     let saqueJugadorIdx = -1, proximoSacadorEq = [0, 2], stack = [], segP = 0, segPel = 300, runP = false, runPel = false, visPel = true, segDescanso = 0, runDescanso = false, cartelGiganteFinal = false;
     let startTimePartido = 0, acumuladoPasado = 0;
@@ -246,32 +252,73 @@
     function ganarS() { if(setActualIdx < 2) { setActualIdx++; modo=(setActualIdx===2 && modoSTB>0)?"TIE-BREAK":"NORMAL"; pts=[0,0]; } }
     function aceptarCambio() { runDescanso=false; segDescanso=0; document.getElementById('cambio-lado-ctrl').style.display="none"; render(); }
     function dispararAviso(m,s) { runDescanso=(s>0); segDescanso=s; document.getElementById('msg-descanso').innerText=m; document.getElementById('cambio-lado-ctrl').style.display="block"; }
+    
     function cambiarReglaTB() { limiteTB=(limiteTB===6)?5:6; render(); }
     function cicloSTB() { modoSTB=(modoSTB+1)%3; render(); }
     function toggleTimer(t) { if(t==='partido') { runP=!runP; if(runP) startTimePartido=Date.now(); else acumuladoPasado=segP; } else { runPel=!runPel; } render(); }
-    function toggleVisPeloteo() { visPel=!visPel; render(); }
+    
+    function toggleVisPeloteo() { 
+        visPel = !visPel; 
+        render(); 
+    }
+
     function togglePuntoOro() { puntoOroActivo=!puntoOroActivo; render(); }
     function definirSaque(idx) { saqueJugadorIdx=idx; render(); }
     function cambiarNombre(i) { let n=prompt("Nombre:"); if(n) document.getElementById('n'+i).innerText=n.toUpperCase(); render(); }
-    function rotarSaqueNormal() { let sigEq=(saqueJugadorIdx<2)?1:0; if(saqueJugadorIdx<2) proximoSacadorEq[0]=(saqueJugadorIdx===0)?1:0; else proximoSacadorEq[1]=(saqueJugadorIdx===2)?3:2; saqueJugadorIdx=(sigEq===0)?proximoSacadorEq[0]:proximoSacadorEq[1]; }
-    function rotarSaqueTB() { if(saqueJugadorIdx<2) { saqueJugadorIdx=proximoSacadorEq[1]; proximoSacadorEq[1]=(proximoSacadorEq[1]===2)?3:2; } else { saqueJugadorIdx=proximoSacadorEq[0]; proximoSacadorEq[0]=(proximoSacadorEq[0]===0)?1:0; } }
+    
+    function rotarSaqueNormal() { 
+        let sigEq=(saqueJugadorIdx<2)?1:0; 
+        if(saqueJugadorIdx<2) proximoSacadorEq[0]=(saqueJugadorIdx===0)?1:0; 
+        else proximoSacadorEq[1]=(saqueJugadorIdx===2)?3:2; 
+        saqueJugadorIdx=(sigEq===0)?proximoSacadorEq[0]:proximoSacadorEq[1]; 
+    }
+
+    function rotarSaqueTB() { 
+        if(saqueJugadorIdx<2) { saqueJugadorIdx=proximoSacadorEq[1]; proximoSacadorEq[1]=(proximoSacadorEq[1]===2)?3:2; } 
+        else { saqueJugadorIdx=proximoSacadorEq[0]; proximoSacadorEq[0]=(proximoSacadorEq[0]===0)?1:0; } 
+    }
+
     function deshacer() { if(stack.length>0) { let e=JSON.parse(stack.pop()); pts=e.pts; historialSets=e.h; setActualIdx=e.sIdx; modo=e.m; saqueJugadorIdx=e.sq; proximoSacadorEq=e.pS; puntoOroActivo=e.oro; modoSTB=e.mstb; finalizado=e.f; runP=e.rP; cartelGiganteFinal=e.cg; limiteTB=e.ltb; startTimePartido=e.sTP; acumuladoPasado=e.acP; segP=e.segP; render(); } }
     function resetTotal() { if(confirm("¿RESETEAR TODO EL PARTIDO?")) { localStorage.clear(); db.ref("marcador").remove(); location.reload(); } }
-    function guardarLocal() { localStorage.setItem('padel_tablet_v1', JSON.stringify({ pts, historialSets, setActualIdx, modo, modoSTB, finalizado, saqueJugadorIdx, proximoSacadorEq, segP, segPel, limiteTB, puntoOroActivo, runP, startTimePartido, acumuladoPasado, names:[document.getElementById('n0').innerText,document.getElementById('n1').innerText,document.getElementById('n2').innerText,document.getElementById('n3').innerText] })); }
-    function cargarLocal() { let b=JSON.parse(localStorage.getItem('padel_tablet_v1')); if(b) { pts=b.pts; historialSets=b.historialSets; setActualIdx=b.setActualIdx; modo=b.modo; modoSTB=b.modoSTB; finalizado=b.finalizado; saqueJugadorIdx=b.saqueJugadorIdx; proximoSacadorEq=b.proximoSacadorEq; segPel=b.segPel; limiteTB=b.limiteTB; puntoOroActivo=b.puntoOroActivo; segP=b.segP; runP=b.runP; startTimePartido=b.startTimePartido; acumuladoPasado=b.acumuladoPasado; b.names.forEach((n,i)=>document.getElementById('n'+i).innerText=n); render(); } }
+    
+    function guardarLocal() { localStorage.setItem('padel_tablet_v1', JSON.stringify({ pts, historialSets, setActualIdx, modo, modoSTB, finalizado, saqueJugadorIdx, proximoSacadorEq, segP, segPel, limiteTB, puntoOroActivo, runP, startTimePartido, acumuladoPasado, names:[document.getElementById('n0').innerText,document.getElementById('n1').innerText,document.getElementById('n2').innerText,document.getElementById('n3').innerText], visPel })); }
+    
+    function cargarLocal() { 
+        let b=JSON.parse(localStorage.getItem('padel_tablet_v1')); 
+        if(b) { 
+            pts=b.pts; historialSets=b.historialSets; setActualIdx=b.setActualIdx; modo=b.modo; modoSTB=b.modoSTB; finalizado=b.finalizado; saqueJugadorIdx=b.saqueJugadorIdx; proximoSacadorEq=b.proximoSacadorEq; segPel=b.segPel; limiteTB=b.limiteTB; puntoOroActivo=b.puntoOroActivo; segP=b.segP; runP=b.runP; startTimePartido=b.startTimePartido; acumuladoPasado=b.acumuladoPasado; visPel = b.visPel !== undefined ? b.visPel : true;
+            b.names.forEach((n,i)=>document.getElementById('n'+i).innerText=n); 
+            render(); 
+        } 
+    }
 
     function render() {
         const l = ["0","15","30","40","Ad"];
         document.getElementById('pA').innerText = modo==="NORMAL" ? l[pts[0]] : pts[0];
         document.getElementById('pB').innerText = modo==="NORMAL" ? l[pts[1]] : pts[1];
+        
+        // Colores de botones de configuración
         document.getElementById('btn-regla').innerText = `TB: ${limiteTB}-${limiteTB}`;
         document.getElementById('btn-regla').classList.toggle('activo', limiteTB === 5);
         document.getElementById('btn-stb').innerText = "3er SET: " + (modoSTB===0?"NORMAL":modoSTB===1?"STB(10)":"STB(11)");
         document.getElementById('btn-stb').classList.toggle('activo', modoSTB>0);
         document.getElementById('btn-oro').innerText = "ORO: " + (puntoOroActivo?"SÍ":"NO");
         document.getElementById('btn-oro').classList.toggle('activo', puntoOroActivo);
+        
+        // Color dinámico para Reloj Peloteo
+        const btnPeloteo = document.getElementById('btn-vis-peloteo');
+        btnPeloteo.classList.toggle('peloteo-activo', visPel);
+
         for(let i=0; i<4; i++) document.getElementById(`f-j${i}`).classList.toggle('sirviendo', saqueJugadorIdx===i); 
-        db.ref("marcador/actual").set({ n0:document.getElementById('n0').innerText, n1:document.getElementById('n1').innerText, n2:document.getElementById('n2').innerText, n3:document.getElementById('n3').innerText, h0:historialSets[0], h1:historialSets[1], p0:document.getElementById('pA').innerText, p1:document.getElementById('pB').innerText, sIdx:saqueJugadorIdx, modo:modo, oro:(puntoOroActivo && pts[0]===3 && pts[1]===3), finalizado:finalizado, msg:document.getElementById('msg-descanso').innerText });
+        
+        db.ref("marcador/actual").set({ 
+            n0:document.getElementById('n0').innerText, n1:document.getElementById('n1').innerText, 
+            n2:document.getElementById('n2').innerText, n3:document.getElementById('n3').innerText, 
+            h0:historialSets[0], h1:historialSets[1], p0:document.getElementById('pA').innerText, 
+            p1:document.getElementById('pB').innerText, sIdx:saqueJugadorIdx, modo:modo, 
+            oro:(puntoOroActivo && pts[0]===3 && pts[1]===3), finalizado:finalizado, 
+            msg:document.getElementById('msg-descanso').innerText 
+        });
     }
 </script>
 </body>
